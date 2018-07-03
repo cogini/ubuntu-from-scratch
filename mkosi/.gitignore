@@ -1,0 +1,4 @@
+mkosi.cache/*
+mkosi.rootpw
+image.raw
+image.tar.gz
