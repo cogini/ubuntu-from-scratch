@@ -1,0 +1,30 @@
+[Distribution]
+Distribution=ubuntu
+Release=bionic
+# Repositories=main restricted universe multiverse
+Repositories=main restricted universe
+
+[Output]
+#Format=directory
+#Format=tar
+#Output=/media/xvdb1
+Format=raw_gpt
+# Bootable=yes
+#Output=image.raw
+# RootSize=
+
+[Packages]
+#Packages=initramfs-tools linux-image-aws grub-pc ssh vim
+# Packages=initramfs-tools linux-image-aws dracut ssh vim
+#Packages=linux-image-aws dracut ssh vim
+Packages=initramfs-tools linux-image-aws udev ssh vim
+# policykit-1 costs 47 MB, to enable hostname
+# cloud-init
+
+#  binutils binutils-common binutils-x86-64-linux-gnu bzip2 cpio dmsetup dpkg-dev dracut-core kmod kpartx libbinutils libbsd0 libdpkg-perl libedit2 libgdbm-compat4 libgdbm5 libglib2.0-0 libgpm2
+#  libgssapi-krb5-2 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libmpdec2 libperl5.26 libpython3.6 libpython3.6-minimal libpython3.6-stdlib libreadline7 libsqlite3-0 libssl1.0.0 libssl1.1
+#  libwrap0 linux-base linux-image-4.15.0-1010-aws linux-modules-4.15.0-1010-aws make mime-support openssh-client openssh-server openssh-sftp-server patch perl perl-modules-5.26 pkg-config
+#  readline-common ucf udev vim-common vim-runtime xxd xz-utils
+
+# [Validation]
+# Password=test

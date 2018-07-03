@@ -1,0 +1,9 @@
+#!/bin/sh
+
+export DEBIAN_FRONTEND=noninteractive
+export DEBCONF_NONINTERACTIVE_SEEN=true
+
+# apt-get update
+# apt-get --assume-yes --no-install-recommends dist-upgrade
+
+# apt-get --assume-yes --no-install-recommends install linux-image-aws dracut ssh vim
