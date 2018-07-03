@@ -1,0 +1,502 @@
+ubuntu-build
+    Create build server running Ubuntu 18.04 from Marketplace image
+    Specify an additional 1GB gp2 partition, mounted on /dev/sdb
+
+    Create build user
+        ansible-playbook -u ubuntu -v -l ubuntu-build playbooks/manage-users.yml -D
+
+    Log in as user with sudo
+        ssh -A ubuntu-build
+
+    apt update
+    apt dist-upgrade
+
+	# apt install --no-install-recommends --assume-yes
+
+    apt install mkosi
+	# apt install qemu
+	# apt install xen-tools
+
+    mkdir work
+    cd work
+    git clone git@gitlab.cogini.com:jake/ubuntu-from-scratch.git
+
+    cd work/ubuntu-from-scratch
+
+    # https://github.com/systemd/mkosi
+    sudo mkosi --password `cat mkosi.rootpw`
+
+    # Image file
+    systemd-nspawn -bi image.raw
+
+    # Directory
+    systemd-nspawn -bD image
+
+    sudo mkosi --password `cat mkosi.rootpw` -t tar
+    # Create tar
+    # tar -C workspace/root -c -J --xattrs --xattrs-include=* .
+
+	Packages
+		ssh
+		initramfs-tools
+		linux-image-aws
+		# apt search linux-image
+		# Not used now
+		# cloud-init
+		# dev
+		# vim-tiny
+		# python3-minimal?
+		python3
+
+    # https://wiki.archlinux.org/index.php/GNU_Parted
+    # https://rainbow.chard.org/2013/01/30/how-to-align-partitions-for-best-performance-using-parted/
+    sudo parted -s /dev/xvdb mklabel msdos mkpart primary ext4 2048s 100%
+
+    # Not needed
+    # sudo parted -s /dev/xvdb set 1 boot on
+    # Verify
+    sudo parted /dev/xvdb print
+    sudo parted /dev/xvdb align-check optimal 1
+
+    # Create filesystem with label 'root'
+    sudo mkfs.ext4 -L root /dev/xvdb1
+    # Verify
+    # sudo e2label /dev/xvdb1
+
+    # Verify label and get filesystem UUID
+    sudo blkid /dev/xvdb1
+
+    # List labels for mounted filesystems
+    mount -l
+
+
+    sudo mkdir -p /media/xvdb1
+    sudo mount /dev/xvdb1 /media/xvdb1
+
+    sudo tar xJv -C /media/xvdb1 -f image.tar.xz
+
+    # mount -t proc none /media/xvdb1/proc
+    # mount -t sysfs sys /media/xvdb1/sys
+    # mount -o bind /dev /media/xvdb1/dev
+
+    mount --bind /proc /media/xvdb1/proc
+    mount --bind /sys /media/xvdb1/sys
+    mount --bind /dev /media/xvdb1/dev
+
+    chroot /media/xvdb1
+    exit
+
+    umount /media/xvdb1/proc
+    umount /media/xvdb1/sys
+    umount /media/xvdb1/dev
+
+    apt update
+    apt dist-upgrade
+
+Configuring grub-pc
+-------------------
+
+grub: A new version (/tmp/grub.bgUtXnsN2z) of configuration file /etc/default/grub is available, but the version installed currently has been locally modified.
+
+  1. install the package maintainer's version    3. show the differences between the versions            5. start a new shell to examine the situation
+    2. keep the local version currently installed  4. show a side-by-side difference between the versions
+    What do you want to do about modified configuration file grub? 2
+
+    The grub-pc package is being upgraded. This menu allows you to select which devices you'd like grub-install to be automatically run for, if any.
+
+    Running grub-install automatically is recommended in most situations, to prevent the installed GRUB core image from getting out of sync with GRUB modules or grub.cfg.
+
+    If you're unsure which drive is designated as boot drive by your BIOS, it is often a good idea to install GRUB to all of them.
+
+	Note: it is possible to install GRUB to partition boot records as well, and
+	some appropriate partitions are offered here. However, this forces GRUB to use
+	the blocklist mechanism, which makes it less reliable, and therefore is not recommended.
+
+      1. /dev/xvda (8589 MB; ???)  2. /dev/xvdb (1073 MB; ???)  3. /dev/xvdb1 (1072 MB; ???)
+
+      (Enter the items you want to select, separated by spaces.)
+
+      GRUB install devices: 2
+
+    # Remove old kernel, since update installed a new one
+    http://ubuntuhandbook.org/index.php/2016/05/remove-old-kernels-ubuntu-16-04/
+    dpkg --list | grep linux-image | awk '{ print $2 }'
+    apt purge linux-image-4.15.0-1007-aws
+    apt purge linux-modules-4.15.0-1007-aws
+    dpkg --list | grep linux-headers | awk '{ print $2 }'
+
+    update-grub
+
+    # Clean cached apt files
+    apt clean
+    rm -rf /var/lib/apt/lists/*
+
+    Manual stuff
+        systemctl enable systemd-networkd
+
+		# Maybe
+		# systemctl enable systemd-resolved
+		# ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+    Template files
+		/etc/fstab
+
+		/etc/default/grub
+			console=ttyS0
+			systemd.show_status=true
+			systemd.journald.forward_to_console
+			systemd.journald.max_level_console=debug
+
+		  	# Disabling Predictable Network Interfaces
+			# net.ifnames=0 biosdevname=0
+
+		/etc/network/interfaces
+			Probably not needed
+
+		/etc/systemd/journald.conf
+            # https://www.freedesktop.org/software/systemd/man/journald.conf.html
+			SyncIntervalSec=30
+
+		/etc/apt/sources.list
+			From host
+
+			bionic,bionic-updates,bionic-backports,bionic-security
+			main, restricted, universe, multiverse
+
+Create AMI
+    https://wiki.debian.org/SystemBuildTools
+    https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ami-tools-commands.html
+
+aws cli
+    # https://wiki.debian.org/Cloud/AmazonEC2DebianInstaller
+
+    aws ec2 create-snapshot --volume-id vol-09f3cd97b400288a9 --query 'SnapshotId' --output text
+
+    aws ec2 register-image --architecture x86_64 --block-device-mappings "DeviceName=/dev/sda1,Ebs={DeleteOnTermination=true,SnapshotId=snap-0740630956d5680c5,VolumeSize=1,VolumeType=gp2}" --name "ubuntu-from-scratch snap-0740630956d5680c5" --root-device-name /dev/sda1 --ena-support --sriov-net-support simple --virtualization-type hvm --query 'Instances[0].InstanceId' --output text
+    aws ec2 register-image --architecture x86_64 --block-device-mappings "DeviceName=/dev/sda1,Ebs={DeleteOnTermination=true,SnapshotId=snap-0740630956d5680c5,VolumeSize=1,VolumeType=gp2}" --name "ubuntu-from-scratch simple network snap-0740630956d5680c5" --root-device-name /dev/sda1 --virtualization-type hvm --ena-support --sriov-net-support --query 'Instances[0].InstanceId' --output text
+
+    aws ec2 run-instances --image-id ami-4de17ba0 --instance-type t2.micro --key-name cogini-jake --associate-public-ip-address --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ubuntu-from-scratch},{Key=owner,Value=jake}]' --query Instances[0].InstanceId --output text
+
+    aws ec2 describe-instances --instance-id i-03d8a7d13a2ce5f93 --query 'Reservations[0].Instances[0].NetworkInterfaces[0].Association.PublicIp' --output text
+    aws ec2 get-console-output --instance-id i-05f9db28305c6d6cc --query 'Output' --output text
+
+    aws ec2 register-image --generate-cli-skeleton
+
+
+    https://serverfault.com/questions/672814/which-iam-permissions-are-needed-for-ec2-create-image
+        aws ec2 describe-volumes --query "Volumes[*].{ID:VolumeId}" --output text > /tmp/volumes
+        for i in $(cat /tmp/volumes); do
+            aws ec2 create-snapshot --volume-id $i | awk {'print $2'} | grep snap* | sed 's/\"//g'|sed 's/\,//g' > /tmp/snapname
+            SNAPENAME=$(cat /tmp/snapname)
+            TAGNAME=$(aws ec2 describe-tags --query "Tags[*].{Name:Value,ResourceId:ResourceId}" --filters "Name=key,Values=Name" --filters "Name=resource-type,Values=volume" --filters "Name=resource-id,Values=$i" --output text | awk '{ print $1 }')
+            sleep 5
+            aws ec2 create-tags --resources $SNAPENAME --tags Key=Name,Value=$TAGNAME >/dev/null
+        done
+
+    aws ec2 import-image --description "nerves-hello" --disk-container Description=nerves-hello,Format=raw,DeviceName=/dev/sda1,Url=s3://cogini-jake-test/1g.img
+
+    https://docs.aws.amazon.com/vm-import/latest/userguide/how-vm-import-export-works.html
+    https://docs.openstack.org/image-guide/convert-images.html
+    https://docs.aws.amazon.com/cli/latest/reference/ec2/import-image.html
+    https://docs.aws.amazon.com/cli/latest/reference/ec2/import-snapshot.html
+
+Initramfs
+    /etc/initramfs-tools/modules
+    update-initramfs -u -k all
+
+cloud-init
+    https://github.com/andsens/bootstrap-vz/tree/master/bootstrapvz/plugins/cloud_init
+
+Console
+    https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-console.html#instance-console-console-output
+    https://docs.aws.amazon.com/cli/latest/reference/ec2/get-console-output.html
+    https://www.kernel.org/doc/html/v4.15/admin-guide/serial-console.html
+    https://help.ubuntu.com/community/SerialConsoleHowto
+    https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UserProvidedKernels.html
+
+	Configuring GRUB for HVM AMIs
+		serial --unit=0 --speed=9600
+		terminal --dumb --timeout=5 serial console
+
+    Amazon Linux
+        console=tty1 console=ttyS0
+
+    AWS NixOS
+        linux 4.14.32
+        console=ttyS0
+
+    CentOS 7
+        serial --speed=115200
+        terminal_input serial console
+        terminal_output serial console
+
+    Debian
+        console=tty1 console=ttyS0
+
+    console=tty0 console=ttyS0,115200n8 console=ttyS0,115200
+
+    Ubuntu 18.04 marketplace
+        console=tty1 console=ttyS0 nvme.io_timeout=4294967295
+
+        kernel 4.15.0-1009-aws buildd@lgw01-amd64-052
+
+	/proc/consoles
+
+Network configuration with systemd
+    systemd-networkd
+    https://www.freedesktop.org/software/systemd/man/systemd.network.html
+
+    /etc/systemd/network/all-ethernet.network
+        [Match]
+        Type=ether
+
+        [Network]
+        DHCP=yes
+
+    /etc/systemd/network/80-dhcp.network
+        [Match]
+        Name=en*
+
+        [Network]
+        DHCP=yes
+
+    /etc/systemd/network/80-eth0.network
+        [Match]
+        Name=eth0
+
+        [Network]
+        DHCP=yes
+
+    # List devices on the system
+    networkctl list
+
+    ethtool -i
+
+    rm /etc/resolv.conf
+    ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+Kernel parameters
+    https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.txt
+
+Grub
+	# grub-install --no-floppy --grub-mkdevicemap=/mnt/minilinux/boot/grub/device.map --root-directory=/mnt/minilinux /dev/loop0
+	# grub-install --no-floppy --grub-mkdevicemap=/boot/grub/device.map /dev/sdb
+
+	grub-install --no-floppy --grub-mkdevicemap=/media/xvdb1/boot/grub/device.map /dev/xvdb
+
+	grub-mkconfig -o /boot/grub/grub.cfg
+	grub-mkdevicemap
+
+	apt install grub-pc
+	grub-install /dev/sda
+	update-grub
+
+    Nerves
+        # Firmware boot script
+        #
+        # This script expects the following Grub2 modules to be compiled
+        # into the grub binary (grub.img):
+        #
+        # boot linux squash4 ext2 fat part_msdos normal biosdisk loadenv echo true test
+        #
+
+        # Load the environment for the validation/fallback settings
+        # (image validation/fallback not added here yet...)
+        load_env
+
+        serial --speed=115200
+        terminal_input serial console
+        terminal_output serial console
+
+        # Boot A or B depending on which one is active
+        if [ $boot = 1 ]; then
+             echo "Booting partition B..."
+             linux (hd0,msdos3)/boot/bzImage root=PARTUUID=04030201-03 rootwait console=tty0 console=ttyS0,115200n8 console=ttyS0,115200
+        else
+             echo "Booting partition A..."
+             linux (hd0,msdos2)/boot/bzImage root=PARTUUID=04030201-02 rootwait console=tty0 console=ttyS0,115200n8 console=ttyS0,115200
+        fi
+
+        # Boot!!!
+    boot
+
+NixOS
+	https://nixos.wiki/wiki/Install_NixOS_on_Amazon_EC2
+	https://discourse.nixos.org/t/building-amis-with-nix/288
+
+	https://github.com/NixOS/nixpkgs/blob/master/nixos/maintainers/scripts/ec2/create-amis.sh
+		nix-shell -i bash -p qemu ec2_ami_tools jq ec2_api_tools awscli
+
+	https://github.com/NixOS/nixpkgs/tree/master/nixos/modules/virtualisation
+	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/amazon-image.nix
+
+	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/headless.nix
+		sound.enable = false;
+		boot.vesa = false;
+
+		# Don't start a tty on the serial consoles.
+		systemd.services."serial-getty@ttyS0".enable = false;
+		systemd.services."serial-getty@hvc0".enable = false;
+		systemd.services."getty@tty1".enable = false;
+		systemd.services."autovt@".enable = false;
+
+		# Since we can't manually respond to a panic, just reboot.
+		boot.kernelParams = [ "panic=1" "boot.panic_on_fail" ];
+
+		# Don't allow emergency mode, because we don't have a console.
+		systemd.enableEmergencyMode = false;
+
+		# Being headless, we don't need a GRUB splash image.
+		boot.loader.grub.splashImage = null;
+
+	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/ec2-data.nix
+		# This module defines a systemd service that sets the SSH host key and
+		# authorized client key and host name of virtual machines running on
+		# Amazon EC2, Eucalyptus and OpenStack Compute (Nova).
+
+	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/amazon-image.nix
+		boot.initrd.kernelModules = [ "xen-blkfront" "xen-netfront" ];
+			Xen enhanced drivers for block and network devices
+			https://wiki.xen.org/wiki/Xen_Linux_PV_on_HVM_drivers
+		boot.initrd.availableKernelModules = [ "ixgbevf" "ena" "nvme" ];
+			Enhanced networking and disk drivers
+
+		# Prevent the nouveau kernel module from being loaded, as it
+		# interferes with the nvidia/nvidia-uvm modules needed for CUDA.
+		# Also blacklist xen_fbfront to prevent a 30 second delay during
+		# boot.
+		boot.blacklistedKernelModules = [ "nouveau" "xen_fbfront" ];
+
+		# Required to provide good EBS experience,
+		# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nvme-ebs-volumes.html#timeout-nvme-ebs-volumes
+		# TODO change value to 4294967295 when kernel is updated to 4.15 or later
+		config.boot.kernelParams = [ "nvme_core.io_timeout=255" ];
+
+		Kernel tuning param nvme_core.max_retries = 10
+
+		# Don't put old configurations in the GRUB menu.  The user has no
+		# way to select them anyway.
+		boot.loader.grub.configurationLimit = 0;
+
+		# Allow root logins only using the SSH key that the user specified
+		# at instance creation time.
+		services.openssh.enable = true;
+		services.openssh.permitRootLogin = "prohibit-password";
+
+		# Force getting the hostname from EC2.
+		networking.hostName = mkDefault "";
+
+		# Always include cryptsetup so that Charon can use it.
+		environment.systemPackages = [ pkgs.cryptsetup ];
+
+		boot.initrd.supportedFilesystems = [ "unionfs-fuse" ];
+
+		# EC2 has its own NTP server provided by the hypervisor
+		networking.timeServers = [ "169.254.169.123" ];
+
+	/dev/disk/by-label/nixos
+
+    https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/make-disk-image.nix
+        ext4 filesystem for root
+        efi vs legacy: use legacy
+
+        partitionDiskScript = { # switch-case
+            legacy = ''
+              parted --script $diskImage -- \
+                mklabel msdos \
+                mkpart primary ext4 1MiB -1
+            '';
+            efi = ''
+              parted --script $diskImage -- \
+                mklabel gpt \
+                mkpart ESP fat32 8MiB 256MiB \
+                set 1 boot on \
+                mkpart primary ext4 256MiB -1
+            '';
+            none = "";
+        }.${partitionTableType};
+
+      rsync
+      utillinux
+      parted
+      e2fsprogs
+      lkl TODO: what is this?
+
+mkosi
+    http://0pointer.net/blog/mkosi-a-tool-for-generating-os-images.html
+    https://github.com/systemd/mkosi
+    https://github.com/systemd/mkosi/blob/master/mkosi
+
+    mkosi -d debian -r stretch -t directory -o quux
+    mkosi -d ubuntu -r bionic -t raw_gpt -o bionic.raw
+
+    mkosi -d ubuntu -r bionic -t directory --password maejeeGhae6ieH --force
+
+    mkosi --password maejeeGhae6ieH --force --with-network
+
+    tasksel --task-packages standard
+
+Debootstrap
+	https://manpages.debian.org/stretch/debootstrap/debootstrap.8.en.html
+
+	export DEBIAN_FRONTEND=noninteractive
+	apt-get install --no-install-recommends --assume-yes
+
+	/usr/sbin/debootstrap --arch ARCH bionic
+		--include=initramfs-tools,linux-image-aws,ssh,vim-tiny
+		--make-tarball=
+		--unpack-tarball
+
+Kiwi
+    https://suse.github.io/kiwi/building/working_with_images/vmx_setup_for_ec2.html#setup-for-ec2
+    https://suse.github.io/kiwi/building/build_vmx_disk.html#vmx
+    https://github.com/SUSE/Enceladus/tree/master/ec2utils
+
+Debian
+    https://wiki.debian.org/Cloud/SystemsComparison
+        Packages
+            debootstrap + cloud-init, apt-transport-https, awscli
+
+    https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/common/tasks/grub.py
+        kernel earlyprintk=ttyS0 init=/bin/systemd
+
+        /etc/initramfs-tools/modules
+        update-initramfs -u -k all
+
+        /etc/timezone
+        https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/common/tasks/locale.py#L46
+                localtime_path = os.path.join(info.root, 'etc/localtime')
+        os.unlink(localtime_path)
+        os.symlink(os.path.join('/usr/share/zoneinfo', timezone), localtime_path)
+
+        /etc/hostname
+
+        /etc/hosts
+        sed_i(hosts_path, '^127.0.0.1\tlocalhost$', '127.0.0.1\tlocalhost\n127.0.1.1\t' + hostname)
+
+        /etc/network/interfaces
+            auto eth0
+            iface eth0 inet dhcp
+
+        tasksel --task-packages standard
+
+        /etc/ssh/sshd_config
+            sed_i(sshd_config_path, '^#PasswordAuthentication yes', 'PasswordAuthentication no')
+            sed_i(sshdconfig_path, '^#?PermitRootLogin .*', 'PermitRootLogin yes')
+            sshd_config.write('UseDNS no')
+
+        https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/__init__.py
+
+            https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/common/assets/systemd/logind.conf
+
+            https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/tasks/ami.py
+            registration
+
+            https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/tasks/network.py#L40
+
+            https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/tasks/tuning.py
+            https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/plugins/admin_user/tasks.py#L130
+                https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-get-credentials
+                https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-run-user-data
+
+            https://github.com/andsens/bootstrap-vz/tree/master/bootstrapvz/plugins/cloud_init

@@ -1,0 +1,144 @@
+Debian kernel tuning
+
+Disks
+	Encrypt disks
+
+	Split partitions
+        /boot
+        /root read only
+		/run runtime
+        /srv app release data
+        /var logs?
+
+	Partition as GPT?
+	Signing things
+    UEFI Secure Boot
+
+mkosi
+    Create admin user instead of root
+	Configure /etc/sudoers.d/00-admin-group to allow passwordless sudo for group admin
+
+    Disallow root login in ssh
+
+# Configure locale
+Jul 03 06:51:26 elixir-app sshd[293]: pam_env(sshd:session): Unable to open env file: /etc/default/locale: No such file or directory
+
+Initialize ssh keypair from EC2 metadata
+    https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/plugins/admin_user/tasks.py#L130
+    https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-get-credentials
+    https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-run-user-data
+
+Disable console input sources since they are unusable
+    sound.enable = false;
+    boot.vesa = false;
+
+    # Don't start a tty on the serial consoles.
+    systemd.services."serial-getty@ttyS0".enable = false;
+    systemd.services."serial-getty@hvc0".enable = false;
+    systemd.services."getty@tty1".enable = false;
+    systemd.services."autovt@".enable = false;
+
+    # Blacklisting unused kernel modules
+    # https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/tasks/tuning.py
+    /etc/modprobe.d/blacklist.conf
+        blacklist i2c_piix4
+        blacklist psmouse
+        # disable pc speaker and floppy\n'
+        blacklist pcspkr
+        blacklist floppy
+
+    https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/common/tasks/boot.py
+
+    /etc/systemd/logind.conf
+        [Login]
+        # Disable all TTY getters
+        NAutoVTs=0
+        ReserveVT=0
+
+Tune system for cloud
+    /etc/sysctl.d/01_ec2.conf
+        # From Debian https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/tasks/tuning.py
+        vm.swappiness = 0
+        vm.dirty_ratio = 80
+        vm.dirty_background_ratio = 5
+        vm.dirty_expire_centisecs = 12000
+        net.core.somaxconn = 1000
+        net.core.netdev_max_backlog = 5000
+        net.core.rmem_max = 16777216
+        net.core.wmem_max = 16777216
+        net.ipv4.tcp_wmem = 4096 12582912 16777216
+        net.ipv4.tcp_rmem = 4096 12582912 16777216
+        net.ipv4.tcp_max_syn_backlog = 8096
+        net.ipv4.tcp_slow_start_after_idle = 0
+        net.ipv4.tcp_tw_reuse = 1
+        net.ipv4.ip_local_port_range = 10240 65535
+        kernel.sysrq = 0
+
+
+Set NTP server from AWS
+    https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/set-time.html#configure-amazon-time-service
+
+    systemd-timesyncd[400]: Network configuration changed, trying to establish connection.
+    systemd-timesyncd[400]: Synchronized to time server 91.189.94.4:123 (ntp.ubuntu.com).
+
+    # EC2 has its own NTP server provided by the hypervisor
+    networking.timeServers = [ "169.254.169.123" ];
+
+Set timezone?
+    Defaults to UTC, so seems ok
+    Timezone Etc/UTC does not exist in container, not updating container timezone.
+    timedatectl status
+
+    https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/common/tasks/locale.py#L46
+    /etc/timezone
+
+    ln -s '/usr/share/zoneinfo' + timezone localtime_path
+
+Set hostname
+    Set manually to app name?
+
+    # Don't try to set hostname in systemd-networkd
+    Jul 03 06:50:19 elixir-app systemd-networkd[236]: Could not set hostname: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+
+    Set /etc/hosts?
+        sed_i(hosts_path, '^127.0.0.1\tlocalhost$', '127.0.0.1\tlocalhost\n127.0.1.1\t' + hostname)
+
+    policykit-1 package brings in 47MB of stuff
+    /usr/share/dbus-1/system-services/
+    Jul 02 06:22:19 localhost dbus-daemon[404]: [system] Successfully activated service 'org.freedesktop.hostname1'
+
+ssh config
+    services.openssh.permitRootLogin = "prohibit-password";
+
+    /etc/ssh/sshd_config
+        sed_i(sshd_config_path, '^#PasswordAuthentication yes', 'PasswordAuthentication no')
+        sed_i(sshdconfig_path, '^#?PermitRootLogin .*', 'PermitRootLogin yes')
+        sshd_config.write('UseDNS no')
+
+From NixOS
+    config.boot.kernelParams = [ "nvme_core.io_timeout=255" ];
+
+    # Since we can't manually respond to a panic, just reboot.
+    boot.kernelParams = [ "panic=1" "boot.panic_on_fail" ];
+
+    # Don't allow emergency mode, because we don't have a console.
+    systemd.enableEmergencyMode = false;
+
+    # Being headless, we don't need a GRUB splash image.
+    boot.loader.grub.splashImage = null;
+
+    # Prevent the nouveau kernel module from being loaded, as it
+    # interferes with the nvidia/nvidia-uvm modules needed for CUDA.
+    # Also blacklist xen_fbfront to prevent a 30 second delay during
+    # boot.
+    boot.blacklistedKernelModules = [ "nouveau" "xen_fbfront" ];
+
+Funny things
+    Cannot get hvm parameter CONSOLE_EVTCHN (18): -22!
+
+    Probably doesn't matter
+    kernel: * Found PM-Timer Bug on the chipset. Due to workarounds for a bug,
+            * this clock source is slow. Consider trying other clock sources
+    kernel: clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+
+    fsck not present in initrd?
