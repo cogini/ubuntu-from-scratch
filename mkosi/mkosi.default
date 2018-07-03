@@ -17,7 +17,12 @@ Format=raw_gpt
 #Packages=initramfs-tools linux-image-aws grub-pc ssh vim
 # Packages=initramfs-tools linux-image-aws dracut ssh vim
 #Packages=linux-image-aws dracut ssh vim
-Packages=initramfs-tools linux-image-aws udev ssh vim
+# Packages=initramfs-tools linux-image-aws udev ssh vim
+# Minimal
+# Packages=initramfs-tools linux-image-aws ssh
+# Dev
+Packages=initramfs-tools linux-image-aws ssh vim-tiny
+
 # policykit-1 costs 47 MB, to enable hostname
 # cloud-init
 
