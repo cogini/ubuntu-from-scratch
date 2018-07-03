@@ -2,6 +2,8 @@
 
 # Create a snapshot from a volume, create an AMI, then launch an instance from it
 
+# export AWS_PROFILE=cogini-dev
+
 set -e
 
 # VOLUME_ID=vol-09f3cd97b400288a9
@@ -67,8 +69,8 @@ echo "Registering image with snapshot $SNAPSHOT_ID"
 IMAGE_ID=$(aws ec2 register-image --architecture x86_64 \
     --block-device-mappings "DeviceName=/dev/sda1,Ebs={DeleteOnTermination=true,SnapshotId=$SNAPSHOT_ID,VolumeSize=1,VolumeType=gp2}" \
     --name "ubuntu-from-scratch simple network $SNAPSHOT_ID" --root-device-name /dev/sda1 --virtualization-type hvm \
+    --ena-support --sriov-net-support simple \
     --query 'ImageId' --output text)
-
 
 echo "Starting instance with AMI $IMAGE_ID"
 INSTANCE_ID=$(aws ec2 run-instances --image-id "$IMAGE_ID" --instance-type t2.micro --key-name cogini-jake \
