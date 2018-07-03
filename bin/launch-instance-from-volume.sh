@@ -86,4 +86,4 @@ echo "Instance public IP: $INSTANCE_IP"
 
 echo "aws ec2 get-console-output --instance-id "$INSTANCE_ID" --query 'Output' --output text"
 
-waitForConsoleOutput
+# waitForConsoleOutput
