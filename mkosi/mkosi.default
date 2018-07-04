@@ -22,6 +22,7 @@ Format=raw_gpt
 # Packages=initramfs-tools linux-image-aws ssh
 # Dev
 Packages=initramfs-tools linux-image-aws ssh vim-tiny
+# python3
 
 # policykit-1 costs 47 MB, to enable hostname
 # cloud-init
