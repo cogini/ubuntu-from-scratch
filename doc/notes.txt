@@ -11,11 +11,11 @@ ubuntu-build
     apt update
     apt dist-upgrade
 
-	# apt install --no-install-recommends --assume-yes
+    # apt install --no-install-recommends --assume-yes
 
     apt install mkosi
-	# apt install qemu
-	# apt install xen-tools
+    # apt install qemu
+    # apt install xen-tools
 
     mkdir work
     cd work
@@ -36,17 +36,17 @@ ubuntu-build
     # Create tar
     # tar -C workspace/root -c -J --xattrs --xattrs-include=* .
 
-	Packages
-		ssh
-		initramfs-tools
-		linux-image-aws
-		# apt search linux-image
-		# Not used now
-		# cloud-init
-		# dev
-		# vim-tiny
-		# python3-minimal?
-		python3
+    Packages
+        ssh
+        initramfs-tools
+        linux-image-aws
+        # apt search linux-image
+        # Not used now
+        # cloud-init
+        # dev
+        # vim-tiny
+        # python3-minimal?
+        python3
 
     # https://wiki.archlinux.org/index.php/GNU_Parted
     # https://rainbow.chard.org/2013/01/30/how-to-align-partitions-for-best-performance-using-parted/
@@ -108,9 +108,9 @@ grub: A new version (/tmp/grub.bgUtXnsN2z) of configuration file /etc/default/gr
 
     If you're unsure which drive is designated as boot drive by your BIOS, it is often a good idea to install GRUB to all of them.
 
-	Note: it is possible to install GRUB to partition boot records as well, and
-	some appropriate partitions are offered here. However, this forces GRUB to use
-	the blocklist mechanism, which makes it less reliable, and therefore is not recommended.
+    Note: it is possible to install GRUB to partition boot records as well, and
+    some appropriate partitions are offered here. However, this forces GRUB to use
+    the blocklist mechanism, which makes it less reliable, and therefore is not recommended.
 
       1. /dev/xvda (8589 MB; ???)  2. /dev/xvdb (1073 MB; ???)  3. /dev/xvdb1 (1072 MB; ???)
 
@@ -134,34 +134,34 @@ grub: A new version (/tmp/grub.bgUtXnsN2z) of configuration file /etc/default/gr
     Manual stuff
         systemctl enable systemd-networkd
 
-		# Maybe
-		# systemctl enable systemd-resolved
-		# ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+        # Maybe
+        # systemctl enable systemd-resolved
+        # ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
     Template files
-		/etc/fstab
+        /etc/fstab
 
-		/etc/default/grub
-			console=ttyS0
-			systemd.show_status=true
-			systemd.journald.forward_to_console
-			systemd.journald.max_level_console=debug
+        /etc/default/grub
+            console=ttyS0
+            systemd.show_status=true
+            systemd.journald.forward_to_console
+            systemd.journald.max_level_console=debug
 
-		  	# Disabling Predictable Network Interfaces
-			# net.ifnames=0 biosdevname=0
+              # Disabling Predictable Network Interfaces
+            # net.ifnames=0 biosdevname=0
 
-		/etc/network/interfaces
-			Probably not needed
+        /etc/network/interfaces
+            Probably not needed
 
-		/etc/systemd/journald.conf
+        /etc/systemd/journald.conf
             # https://www.freedesktop.org/software/systemd/man/journald.conf.html
-			SyncIntervalSec=30
+            SyncIntervalSec=30
 
-		/etc/apt/sources.list
-			From host
+        /etc/apt/sources.list
+            From host
 
-			bionic,bionic-updates,bionic-backports,bionic-security
-			main, restricted, universe, multiverse
+            bionic,bionic-updates,bionic-backports,bionic-security
+            main, restricted, universe, multiverse
 
 Create AMI
     https://wiki.debian.org/SystemBuildTools
@@ -204,9 +204,6 @@ Initramfs
     /etc/initramfs-tools/modules
     update-initramfs -u -k all
 
-cloud-init
-    https://github.com/andsens/bootstrap-vz/tree/master/bootstrapvz/plugins/cloud_init
-
 Console
     https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-console.html#instance-console-console-output
     https://docs.aws.amazon.com/cli/latest/reference/ec2/get-console-output.html
@@ -214,9 +211,9 @@ Console
     https://help.ubuntu.com/community/SerialConsoleHowto
     https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UserProvidedKernels.html
 
-	Configuring GRUB for HVM AMIs
-		serial --unit=0 --speed=9600
-		terminal --dumb --timeout=5 serial console
+    Configuring GRUB for HVM AMIs
+        serial --unit=0 --speed=9600
+        terminal --dumb --timeout=5 serial console
 
     Amazon Linux
         console=tty1 console=ttyS0
@@ -240,7 +237,10 @@ Console
 
         kernel 4.15.0-1009-aws buildd@lgw01-amd64-052
 
-	/proc/consoles
+    console=xvc0
+
+
+    /proc/consoles
 
 Network configuration with systemd
     systemd-networkd
@@ -279,17 +279,41 @@ Kernel parameters
     https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/kernel-parameters.txt
 
 Grub
-	# grub-install --no-floppy --grub-mkdevicemap=/mnt/minilinux/boot/grub/device.map --root-directory=/mnt/minilinux /dev/loop0
-	# grub-install --no-floppy --grub-mkdevicemap=/boot/grub/device.map /dev/sdb
+    # grub-install --no-floppy --grub-mkdevicemap=/mnt/minilinux/boot/grub/device.map --root-directory=/mnt/minilinux /dev/loop0
+    # grub-install --no-floppy --grub-mkdevicemap=/boot/grub/device.map /dev/sdb
 
-	grub-install --no-floppy --grub-mkdevicemap=/media/xvdb1/boot/grub/device.map /dev/xvdb
+    grub-install --no-floppy --grub-mkdevicemap=/media/xvdb1/boot/grub/device.map /dev/xvdb
 
-	grub-mkconfig -o /boot/grub/grub.cfg
-	grub-mkdevicemap
+    grub-mkconfig -o /boot/grub/grub.cfg
+    grub-mkdevicemap
 
-	apt install grub-pc
-	grub-install /dev/sda
-	update-grub
+    apt install grub-pc
+    grub-install /dev/sda
+    update-grub
+
+    grub-install --target=i386-pc --directory=/mnt/myroot/usr/lib/grub/i386-pc --recheck --boot-directory=/mnt/myroot/root/boot /dev/xvdg
+
+    https://askubuntu.com/questions/531364/non-interactive-install-of-grub2-when-installing-from-scratch
+    cho "grub-pc grub-pc/install_devices_empty   boolean true" | debconf-set-selections
+    DEBIAN_FRONTEND=text apt-get -y install grub2
+
+    https://unix.stackexchange.com/questions/275429/creating-bootable-debian-image-with-debootstrap/379442
+    grub-install --boot-directory=/mnt/boot --modules=part_msdos /dev/loop0
+
+    apt install debconf-utils
+    debconf-get-selections | grep grub-pc > /tmp/grubpc.debconf
+
+    https://github.com/fervo/Ultron/blob/master/http/preseed.cfg
+    grub-pc     grub-pc/install_devices multiselect /dev/xvdb
+
+
+    http://my-zhang.github.io/blog/2014/06/28/make-bootable-linux-disk-image-with-grub2/
+        cat > /mnt/minilinux/boot/grub/device.map << EOF
+        (hd0) /dev/loop0
+        (hd0,1) /dev/loop1
+        EOF
+        grub-install --no-floppy --grub-mkdevicemap=/mnt/minilinux/boot/grub/device.map --root-directory=/mnt/minilinux /dev/loop0
+
 
     Nerves
         # Firmware boot script
@@ -321,80 +345,80 @@ Grub
     boot
 
 NixOS
-	https://nixos.wiki/wiki/Install_NixOS_on_Amazon_EC2
-	https://discourse.nixos.org/t/building-amis-with-nix/288
+    https://nixos.wiki/wiki/Install_NixOS_on_Amazon_EC2
+    https://discourse.nixos.org/t/building-amis-with-nix/288
 
-	https://github.com/NixOS/nixpkgs/blob/master/nixos/maintainers/scripts/ec2/create-amis.sh
-		nix-shell -i bash -p qemu ec2_ami_tools jq ec2_api_tools awscli
+    https://github.com/NixOS/nixpkgs/blob/master/nixos/maintainers/scripts/ec2/create-amis.sh
+        nix-shell -i bash -p qemu ec2_ami_tools jq ec2_api_tools awscli
 
-	https://github.com/NixOS/nixpkgs/tree/master/nixos/modules/virtualisation
-	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/amazon-image.nix
+    https://github.com/NixOS/nixpkgs/tree/master/nixos/modules/virtualisation
+    https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/amazon-image.nix
 
-	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/headless.nix
-		sound.enable = false;
-		boot.vesa = false;
+    https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/headless.nix
+        sound.enable = false;
+        boot.vesa = false;
 
-		# Don't start a tty on the serial consoles.
-		systemd.services."serial-getty@ttyS0".enable = false;
-		systemd.services."serial-getty@hvc0".enable = false;
-		systemd.services."getty@tty1".enable = false;
-		systemd.services."autovt@".enable = false;
+        # Don't start a tty on the serial consoles.
+        systemd.services."serial-getty@ttyS0".enable = false;
+        systemd.services."serial-getty@hvc0".enable = false;
+        systemd.services."getty@tty1".enable = false;
+        systemd.services."autovt@".enable = false;
 
-		# Since we can't manually respond to a panic, just reboot.
-		boot.kernelParams = [ "panic=1" "boot.panic_on_fail" ];
+        # Since we can't manually respond to a panic, just reboot.
+        boot.kernelParams = [ "panic=1" "boot.panic_on_fail" ];
 
-		# Don't allow emergency mode, because we don't have a console.
-		systemd.enableEmergencyMode = false;
+        # Don't allow emergency mode, because we don't have a console.
+        systemd.enableEmergencyMode = false;
 
-		# Being headless, we don't need a GRUB splash image.
-		boot.loader.grub.splashImage = null;
+        # Being headless, we don't need a GRUB splash image.
+        boot.loader.grub.splashImage = null;
 
-	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/ec2-data.nix
-		# This module defines a systemd service that sets the SSH host key and
-		# authorized client key and host name of virtual machines running on
-		# Amazon EC2, Eucalyptus and OpenStack Compute (Nova).
+    https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/ec2-data.nix
+        # This module defines a systemd service that sets the SSH host key and
+        # authorized client key and host name of virtual machines running on
+        # Amazon EC2, Eucalyptus and OpenStack Compute (Nova).
 
-	https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/amazon-image.nix
-		boot.initrd.kernelModules = [ "xen-blkfront" "xen-netfront" ];
-			Xen enhanced drivers for block and network devices
-			https://wiki.xen.org/wiki/Xen_Linux_PV_on_HVM_drivers
-		boot.initrd.availableKernelModules = [ "ixgbevf" "ena" "nvme" ];
-			Enhanced networking and disk drivers
+    https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/virtualisation/amazon-image.nix
+        boot.initrd.kernelModules = [ "xen-blkfront" "xen-netfront" ];
+            Xen enhanced drivers for block and network devices
+            https://wiki.xen.org/wiki/Xen_Linux_PV_on_HVM_drivers
+        boot.initrd.availableKernelModules = [ "ixgbevf" "ena" "nvme" ];
+            Enhanced networking and disk drivers
 
-		# Prevent the nouveau kernel module from being loaded, as it
-		# interferes with the nvidia/nvidia-uvm modules needed for CUDA.
-		# Also blacklist xen_fbfront to prevent a 30 second delay during
-		# boot.
-		boot.blacklistedKernelModules = [ "nouveau" "xen_fbfront" ];
+        # Prevent the nouveau kernel module from being loaded, as it
+        # interferes with the nvidia/nvidia-uvm modules needed for CUDA.
+        # Also blacklist xen_fbfront to prevent a 30 second delay during
+        # boot.
+        boot.blacklistedKernelModules = [ "nouveau" "xen_fbfront" ];
 
-		# Required to provide good EBS experience,
-		# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nvme-ebs-volumes.html#timeout-nvme-ebs-volumes
-		# TODO change value to 4294967295 when kernel is updated to 4.15 or later
-		config.boot.kernelParams = [ "nvme_core.io_timeout=255" ];
+        # Required to provide good EBS experience,
+        # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nvme-ebs-volumes.html#timeout-nvme-ebs-volumes
+        # TODO change value to 4294967295 when kernel is updated to 4.15 or later
+        config.boot.kernelParams = [ "nvme_core.io_timeout=255" ];
 
-		Kernel tuning param nvme_core.max_retries = 10
+        Kernel tuning param nvme_core.max_retries = 10
 
-		# Don't put old configurations in the GRUB menu.  The user has no
-		# way to select them anyway.
-		boot.loader.grub.configurationLimit = 0;
+        # Don't put old configurations in the GRUB menu.  The user has no
+        # way to select them anyway.
+        boot.loader.grub.configurationLimit = 0;
 
-		# Allow root logins only using the SSH key that the user specified
-		# at instance creation time.
-		services.openssh.enable = true;
-		services.openssh.permitRootLogin = "prohibit-password";
+        # Allow root logins only using the SSH key that the user specified
+        # at instance creation time.
+        services.openssh.enable = true;
+        services.openssh.permitRootLogin = "prohibit-password";
 
-		# Force getting the hostname from EC2.
-		networking.hostName = mkDefault "";
+        # Force getting the hostname from EC2.
+        networking.hostName = mkDefault "";
 
-		# Always include cryptsetup so that Charon can use it.
-		environment.systemPackages = [ pkgs.cryptsetup ];
+        # Always include cryptsetup so that Charon can use it.
+        environment.systemPackages = [ pkgs.cryptsetup ];
 
-		boot.initrd.supportedFilesystems = [ "unionfs-fuse" ];
+        boot.initrd.supportedFilesystems = [ "unionfs-fuse" ];
 
-		# EC2 has its own NTP server provided by the hypervisor
-		networking.timeServers = [ "169.254.169.123" ];
+        # EC2 has its own NTP server provided by the hypervisor
+        networking.timeServers = [ "169.254.169.123" ];
 
-	/dev/disk/by-label/nixos
+    /dev/disk/by-label/nixos
 
     https://github.com/NixOS/nixpkgs/blob/master/nixos/lib/make-disk-image.nix
         ext4 filesystem for root
@@ -437,25 +461,42 @@ mkosi
     tasksel --task-packages standard
 
 Debootstrap
-	https://manpages.debian.org/stretch/debootstrap/debootstrap.8.en.html
+    https://manpages.debian.org/stretch/debootstrap/debootstrap.8.en.html
 
-	export DEBIAN_FRONTEND=noninteractive
-	apt-get install --no-install-recommends --assume-yes
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install --no-install-recommends --assume-yes
 
-	/usr/sbin/debootstrap --arch ARCH bionic
-		--include=initramfs-tools,linux-image-aws,ssh,vim-tiny
-		--make-tarball=
-		--unpack-tarball
+    /usr/sbin/debootstrap --arch ARCH bionic
+        --include=initramfs-tools,linux-image-aws,ssh,vim-tiny
+        --make-tarball=
+        --unpack-tarball
+
+    Nice debootstrap script
+        https://gist.github.com/takumin/952b5144e7b6466c6006
+    Little script to create a minimal ubuntu using debootstrap and bring it up to date
+        https://gist.github.com/DazWorrall/4277257
 
 Kiwi
     https://suse.github.io/kiwi/building/working_with_images/vmx_setup_for_ec2.html#setup-for-ec2
     https://suse.github.io/kiwi/building/build_vmx_disk.html#vmx
     https://github.com/SUSE/Enceladus/tree/master/ec2utils
 
+    console=xvc0
+
 Debian
     https://wiki.debian.org/Cloud/SystemsComparison
         Packages
             debootstrap + cloud-init, apt-transport-https, awscli
+
+    # Setting cache TTL via proxy
+    https://wiki.debian.org/Sprints/2016/DebianCloudNov2016?action=AttachFile&do=view&target=CloudFrontProxyInterceptionConfig.txt
+
+    https://wiki.debian.org/Cloud/AmazonEC2DebianInstaller
+    https://wiki.debian.org/DebianInstaller/Preseed
+    https://fai-project.org/
+
+    # Shell based alternative to bootstrap-vz
+    https://github.com/sitepoint/debian-image-builder/blob/master/README.md
 
     https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/common/tasks/grub.py
         kernel earlyprintk=ttyS0 init=/bin/systemd
@@ -500,3 +541,40 @@ Debian
                 https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-run-user-data
 
             https://github.com/andsens/bootstrap-vz/tree/master/bootstrapvz/plugins/cloud_init
+
+cloud-init
+    https://suse.github.io/kiwi/building/working_with_images/vmx_setup_for_ec2.html#setup-for-ec2
+    https://github.com/andsens/bootstrap-vz/tree/master/bootstrapvz/plugins/cloud_init
+
+FAI
+    https://salsa.debian.org/cloud-team/fai-cloud-images/blob/master/config_space/files/etc/cloud/cloud.cfg.d/01_debian_cloud.cfg/CLOUD
+    https://salsa.debian.org/cloud-team/fai-cloud-images/blob/master/config_space/files/etc/chrony/chrony.conf/EC2
+    https://salsa.debian.org/cloud-team/fai-cloud-images/blob/master/config_space/files/etc/default/grub.d/10_cloud_disk_scheduler.cfg/CLOUD
+    https://salsa.debian.org/cloud-team/fai-cloud-images/blob/master/config_space/files/etc/default/grub.d/11_disable_net_ifnames.cfg/CLOUD
+    https://salsa.debian.org/cloud-team/fai-cloud-images/blob/master/config_space/files/etc/default/grub.d/20_serial_console.cfg/CLOUD
+    https://salsa.debian.org/cloud-team/fai-cloud-images/blob/master/bin/volume-to-ami.sh
+    https://noah.meyerhans.us/blog/2017/02/10/using-fai-to-customize-and-build-your-own-cloud-images/
+    https://salsa.debian.org/cloud-team/fai-cloud-images
+
+    https://docs.aws.amazon.com/cli/latest/reference/ec2/wait/index.html#cli-aws-ec2-wait
+
+https://lists.debian.org/debian-cloud/2016/11/msg00100.html
+https://salsa.debian.org/noahm/ec2-image-builder
+
+http://www.daniloaz.com/en/partitioning-and-resizing-the-ebs-root-volume-of-an-aws-ec2-instance/
+
+Gentoo
+    https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Disks
+    https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Bootloader
+
+    grub-install /dev/sda
+    grub-mkconfig -o /boot/grub/grub.cfg
+
+UEFI
+    https://superuser.com/questions/903112/grub2-install-this-gpt-partition-label-contains-no-bios-boot-partition
+    https://blog.heckel.xyz/2017/05/28/creating-a-bios-gpt-and-uefi-gpt-grub-bootable-linux-system/
+
+Managing APT repositories on S3
+    https://github.com/krobertson/deb-s3
+    http://webscale.plumbing/managing-apt-repos-in-s3-using-lambda
+    https://www.aptly.info/doc/feature/s3/

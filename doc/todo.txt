@@ -1,5 +1,19 @@
 Debian kernel tuning
 
+Configure locale
+    Jul 03 11:22:18 elixir-app deploy-template[5616]: warning: the VM is running with native name encoding of latin1 which may cause Elixir to
+    malfunction as it expects utf8. Please ensure your locale is set to UTF-8 (which can be verified by running "locale" in your shell)
+
+    Jul 03 06:51:26 elixir-app sshd[293]: pam_env(sshd:session): Unable to open env file: /etc/default/locale: No such file or directory
+    apt install locales
+
+    https://www.thomas-krenn.com/en/wiki/Configure_Locales_in_Ubuntu
+    sudo locale-gen en_US.UTF-8
+    sudo update-locale LANG=en_US.UTF-8
+
+    Configure with files?
+        Maybe just set to C.UTF-8
+
 Disks
 	Encrypt disks
 
@@ -20,13 +34,13 @@ mkosi
 
     Disallow root login in ssh
 
-# Configure locale
-Jul 03 06:51:26 elixir-app sshd[293]: pam_env(sshd:session): Unable to open env file: /etc/default/locale: No such file or directory
 
 Initialize ssh keypair from EC2 metadata
     https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/plugins/admin_user/tasks.py#L130
     https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-get-credentials
     https://github.com/andsens/bootstrap-vz/blob/master/bootstrapvz/providers/ec2/assets/init.d/ec2-run-user-data
+
+Disable ipv6 if it's not supported by AWS?
 
 Disable console input sources since they are unusable
     sound.enable = false;
@@ -94,6 +108,8 @@ Set timezone?
 
     ln -s '/usr/share/zoneinfo' + timezone localtime_path
 
+    dpkg-reconfigure tzdata
+
 Set hostname
     Set manually to app name?
 
@@ -142,3 +158,4 @@ Funny things
     kernel: clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
 
     fsck not present in initrd?
+
