@@ -4,8 +4,9 @@ Someone on Reddit was doing something similar, so I am publishing my notes and
 scripts.
 
 The approach I used was to create an install in an EBS volume using
-`debootstrap`, then taking a snapshot of the volume and turning it into an AMI.
-It did work, but these days I would just use Ubuntu Minimal.
+`debootstrap` (via [mkosi](https://github.com/systemd/mkosi), then taking a
+snapshot of the volume and turning it into an AMI. It did work, but these days
+I would just use Ubuntu Minimal.
 
 A much more complete example of using the Buildroot embedded Linux distribution
 to create AMIs is here: https://github.com/cogini/buildroot_ec2
