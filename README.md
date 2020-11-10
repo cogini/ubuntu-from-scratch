@@ -1,6 +1,6 @@
 A few years ago, before [Ubuntu Minimal](https://wiki.ubuntu.com/Minimal)
 existed, I was playing around with creating small Ubuntu AMIs from scratch.
-Someone on Reddit was doing something similar, so I am publishing my notes and
+Someone on Reddit asked about doing something similar, so I am publishing my notes and
 scripts.
 
 The approach I used was to create an install in an EBS volume using
