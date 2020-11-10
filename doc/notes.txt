@@ -19,7 +19,7 @@ ubuntu-build
 
     mkdir work
     cd work
-    git clone git@gitlab.cogini.com:jake/ubuntu-from-scratch.git
+    git clone git@github.com:cogini/ubuntu-from-scratch.git
 
     cd work/ubuntu-from-scratch
 
