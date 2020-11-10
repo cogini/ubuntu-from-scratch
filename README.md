@@ -4,7 +4,7 @@ Someone on Reddit asked about doing something similar, so I am publishing my not
 scripts.
 
 The approach I used was to create an install in an EBS volume using
-`debootstrap` (via [mkosi](https://github.com/systemd/mkosi), then taking a
+`debootstrap` (via [mkosi](https://github.com/systemd/mkosi)), then taking a
 snapshot of the volume and turning it into an AMI. It did work, but these days
 I would just use Ubuntu Minimal.
 
