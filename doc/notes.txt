@@ -127,6 +127,9 @@ grub: A new version (/tmp/grub.bgUtXnsN2z) of configuration file /etc/default/gr
 
     update-grub
 
+    https://github.com/buildroot/buildroot/tree/master/boot/grub2
+        sudo ./output/host/sbin/grub-bios-setup -b ./output/host/lib/grub/i386-pc/boot.img -c ./output/images/grub.img -d . /dev/loop0
+
     # Clean cached apt files
     apt clean
     rm -rf /var/lib/apt/lists/*
@@ -220,7 +223,8 @@ Console
 
     AWS NixOS
         linux 4.14.32
-        console=ttyS0
+
+        panic=1 boot.panic_on_fail console=ttyS0 loglevel=4
 
     CentOS 7
         serial --speed=115200
